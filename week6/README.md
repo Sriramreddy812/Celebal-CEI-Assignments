@@ -36,21 +36,6 @@ README.md
 requirements.txt
 denoising_autoencoder_mnist.keras
 ```
-
-## How to Run
-
-1. Install the required libraries:
-
-```bash
-pip install -r requirements.txt
-```
-
-2. Open the Jupyter Notebook and run all the cells.
-
 ## Output
 
 The trained autoencoder removes most of the added noise while preserving the handwritten digit structure.
-
-## Author
-
-**Sriram Reddy**
