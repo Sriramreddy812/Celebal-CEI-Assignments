@@ -27,6 +27,7 @@ document-rag/
 │   ├── retriever.py
 │   └── generator.py
 └── README.md
+```
 
 ## How It Works
 
