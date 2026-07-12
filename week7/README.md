@@ -14,6 +14,7 @@ A Retrieval-Augmented Generation (RAG) system that answers questions from an upl
 - **Interface**: Streamlit
 
 ## Project Structure
+```text
 document-rag/
 ├── streamlit_app.py    # Main Streamlit app
 ├── requirements.txt
