@@ -2,7 +2,7 @@ from transformers import pipeline
 from langchain_huggingface import HuggingFacePipeline
 
 
-def get_llm_pipeline(model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"):
+def get_llm_pipeline(model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"):
     """
     Load a Qwen2.5 instruct model wrapped as a LangChain-compatible pipeline.
     return_full_text=False means the pipeline only returns the newly generated
