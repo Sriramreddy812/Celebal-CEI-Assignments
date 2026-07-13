@@ -1,41 +1,60 @@
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from langchain_huggingface import HuggingFacePipeline
 
+MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 
-def get_llm_pipeline(model_name: str = "Qwen/Qwen2.5-1.5B-Instruct"):
+
+def get_llm_pipeline(model_name: str = MODEL_NAME):
     """
-    Load a Qwen2.5 instruct model wrapped as a LangChain-compatible pipeline.
-    return_full_text=False means the pipeline only returns the newly generated
-    text, not the prompt echoed back - simplifies parsing the answer.
+    Load Qwen2.5 with its own tokenizer, so we can use apply_chat_template()
+    instead of hand-typing chat tags - this guarantees the prompt format
+    exactly matches what the model was trained on.
     """
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name)
+
     hf_pipe = pipeline(
         task="text-generation",
-        model=model_name,
-        max_new_tokens=150,
-        max_length=None,
-        temperature=0.2,
-        do_sample=True,
+        model=model,
+        tokenizer=tokenizer,
+        max_new_tokens=300,
+        do_sample=False,        # deterministic output - more reliable for factual Q&A than sampling
+        repetition_penalty=1.2, # discourages rambling/looping
         return_full_text=False,
     )
-    return HuggingFacePipeline(pipeline=hf_pipe)
+    llm = HuggingFacePipeline(pipeline=hf_pipe)
+    return llm, tokenizer
 
 
-def generate_answer(llm, query: str, retrieved_results):
+def generate_answer(llm_and_tokenizer, query: str, retrieved_results):
     """
-    Build a chat-structured prompt using Qwen's expected chat format tags,
-    to prevent the model confusing instructions with context.
+    Build a grounding prompt using the tokenizer's official chat template,
+    then generate an answer.
     """
+    llm, tokenizer = llm_and_tokenizer
+
+    if not retrieved_results:
+        return "I don't have enough information in the document to answer that."
+
     context_text = "\n\n".join(chunk.page_content for chunk, score in retrieved_results)
 
-    prompt = (
-        "<|im_start|>system\n"
-        "You are a factual assistant. Read the provided context carefully and answer the user's question with a short, direct answer. "
-        "Pay close attention to document metadata: distinguish between the author of a book being discussed and the person who submitted/wrote the document itself. "
-        "Extract the exact answer from the context if possible. If the answer is not in the context, say you don't know.<|im_end|>\n"
-        "<|im_start|>user\n"
-        f"Context:\n{context_text}\n\n"
-        f"Question: {query}<|im_end|>\n"
-        "<|im_start|>assistant\n"
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a factual assistant. Answer the user's question using only the "
+                "provided context. Give a short, direct, complete answer. If the question "
+                "has multiple parts, answer all of them. Distinguish between the author of "
+                "a book being discussed and the person who submitted/wrote the document itself. "
+                "If the answer is not in the context, say you don't know."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Context:\n{context_text}\n\nQuestion: {query}",
+        },
+    ]
 
-    return llm.invoke(prompt).strip()
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    answer = llm.invoke(prompt)
+    return answer.strip()
