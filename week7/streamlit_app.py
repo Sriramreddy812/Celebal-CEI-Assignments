@@ -18,7 +18,7 @@ st.write("Upload a PDF and ask questions about its content.")
 
 # Top-K set to 2 based on testing: fewer, more focused chunks gave more
 # precise answers than a wider Top-K, especially for fact-based questions.
-TOP_K = 2
+TOP_K = 4
 
 
 @st.cache_resource
