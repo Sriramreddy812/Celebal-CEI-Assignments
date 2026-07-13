@@ -1,39 +1,45 @@
 from transformers import pipeline
 
 
-def get_llm_pipeline(model_name: str = "google/flan-t5-base"):
+def get_llm_pipeline(model_name: str = "Qwen/Qwen2.5-0.5B-Instruct"):
     """
-    Load and return a text2text-generation pipeline for answer generation.
+    Load and return a text-generation pipeline for a Qwen instruct model.
+    Qwen2.5-0.5B-Instruct is small enough to run free/local on CPU, but
+    noticeably better than flan-t5-base at pulling exact facts from context
+    instead of defaulting to a broad summary.
     """
-
-    llm_pipeline = pipeline("text2text-generation", model=model_name)
-
+    llm_pipeline = pipeline(
+        "text-generation",
+        model=model_name,
+        torch_dtype="auto",
+    )
     return llm_pipeline
 
 
 def generate_answer(llm_pipeline, query: str, retrieved_results):
     """
-    Build a context-grounded prompt from retrieved chunks and generate an answer.
+    Build a context-grounded chat prompt from retrieved chunks and generate an answer.
+    Qwen is an instruct/chat model, so we use its chat message format instead of
+    a plain text2text prompt string.
     """
-
     context_text = "\n\n".join([chunk.page_content for chunk, score in retrieved_results])
 
-    prompt = (
-        f"Read the context carefully and answer the question with a short, direct, factual answer. "
-        f"Extract the exact answer from the context if possible. "
-        f"If the answer is not in the context, say you don't know.\n\n"
-        f"Context:\n{context_text}\n\n"
-        f"Question: {query}\n"
-        f"Answer:"
-    )
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant that answers questions using only the "
+                "provided context. Give a short, direct, factual answer. "
+                "If the answer is not in the context, say you don't know."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"Context:\n{context_text}\n\nQuestion: {query}",
+        },
+    ]
 
-    result = llm_pipeline(
-        prompt,
-        max_new_tokens=150,
-        truncation=True,
-        repetition_penalty=1.3,
-        no_repeat_ngram_size=3,
-    )
-    answer = result[0]["generated_text"].strip()
+    result = llm_pipeline(messages, max_new_tokens=200, do_sample=False)
+    answer = result[0]["generated_text"][-1]["content"].strip()
 
     return answer
