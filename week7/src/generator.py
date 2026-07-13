@@ -29,8 +29,8 @@ def generate_answer(llm_pipeline, query: str, retrieved_results):
             "role": "system",
             "content": (
                 "You are a helpful assistant that answers questions using only the "
-                "provided context. Give a short, direct, factual answer. "
-                "If the answer is not in the context, say you don't know."
+                "provided context. Give a clear, complete answer using multiple sentences "
+                "if needed. If the answer is not in the context, say you don't know."
             ),
         },
         {
@@ -39,7 +39,7 @@ def generate_answer(llm_pipeline, query: str, retrieved_results):
         },
     ]
 
-    result = llm_pipeline(messages, max_new_tokens=200, do_sample=False)
+    result = llm_pipeline(messages, max_new_tokens=300, do_sample=False)
     answer = result[0]["generated_text"][-1]["content"].strip()
 
     return answer
