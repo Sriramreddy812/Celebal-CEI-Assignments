@@ -71,6 +71,10 @@ if uploaded_file is not None:
             retrieved_results = retrieve_relevant_chunks(
                 st.session_state["vector_store"], user_query, top_k=TOP_K
             )
+
+            # TEMPORARY DEBUG - remove after finding the right threshold
+            st.write("Retrieval scores:", [round(score, 3) for _, score in retrieved_results])
+
             answer = generate_answer(llm_pipeline, user_query, retrieved_results)
 
         st.subheader("Answer")
