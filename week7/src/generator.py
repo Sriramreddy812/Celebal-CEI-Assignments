@@ -26,15 +26,21 @@ def get_llm_pipeline(model_name: str = MODEL_NAME):
     return llm, tokenizer
 
 
-def generate_answer(llm_and_tokenizer, query: str, retrieved_results):
+def generate_answer(llm_and_tokenizer, query: str, retrieved_results, distance_threshold: float = 1.5):
     """
     Build a grounding prompt using the tokenizer's official chat template,
-    then generate an answer.
+    then generate an answer. If nothing retrieved is actually close to the
+    query (distance_threshold), skip generation entirely rather than letting
+    the model guess/hallucinate.
     """
     llm, tokenizer = llm_and_tokenizer
 
     if not retrieved_results:
         return "I don't have enough information in the document to answer that."
+
+    best_score = min(score for _, score in retrieved_results)
+    if best_score > distance_threshold:
+        return "This information does not appear to be in the uploaded document."
 
     context_text = "\n\n".join(chunk.page_content for chunk, score in retrieved_results)
 
